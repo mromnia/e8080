@@ -1,0 +1,8 @@
+[package]
+name = "e8080"
+version = "0.1.0"
+authors = ["Marcin R <mr.omnia.dev@gmail.com>"]
+
+[dependencies]
+
+rand = "0.5.0"
