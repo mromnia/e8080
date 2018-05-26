@@ -41,7 +41,7 @@ impl OpcodeDecoder {
             let mut op = Op {
                 optype: Rc::downgrade(&optype),
                 arg1: None,
-                arg2: None
+                arg2: None,
             };
 
             if optype.len > 1 {

@@ -26,13 +26,19 @@ fn main() {
 
     for (idx, op) in ops.into_iter().enumerate() {
         if idx > 20 {
-            return
+            return;
         }
 
         if let Some(optype) = op.optype.upgrade() {
             match op {
-                opcode_decoder::Op { arg1: Some(x), arg2: Some(y), .. } => println!("{} {:x?} {:x?}", optype.instruction, x, y),
-                opcode_decoder::Op { arg1: Some(x), .. } => println!("{} {:x?}", optype.instruction, x),
+                opcode_decoder::Op {
+                    arg1: Some(x),
+                    arg2: Some(y),
+                    ..
+                } => println!("{} {:x?} {:x?}", optype.instruction, x, y),
+                opcode_decoder::Op { arg1: Some(x), .. } => {
+                    println!("{} {:x?}", optype.instruction, x)
+                }
                 _ => println!("{}", optype.instruction),
             }
         }
