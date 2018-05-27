@@ -35,3 +35,25 @@ pub fn higher_8(x: u16) -> u8 {
 pub fn lower_8(x: u16) -> u8 {
     x as u8
 }
+
+pub fn rot_left(x: u8, with_carry: bool) -> (u8, bool) {
+    let mut x = (x as u16) << 1;
+    let carry = (x & 0xFF00) > 0;
+
+    if with_carry {
+        x |= 0x01;
+    }
+
+    (x as u8, carry)
+}
+
+pub fn rot_right(x: u8, with_carry: bool) -> (u8, bool) {
+    let carry = (x & 0x01) > 0;
+    let mut x = (x as u16) >> 1;
+
+    if with_carry {
+        x |= 0x80;
+    }
+
+    (x as u8, carry)
+}

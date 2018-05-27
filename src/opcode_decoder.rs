@@ -82,4 +82,18 @@ impl Op {
             panic!("Attempt to get missing OpType")
         }
     }
+
+    pub fn arg1(&self) -> u8 {
+        match self.arg1 {
+            Some(a) => a,
+            None => panic!("Expected arg1 in Op"),
+        }
+    }
+
+    pub fn arg2(&self) -> u8 {
+        match self.arg2 {
+            Some(a) => a,
+            None => panic!("Expected arg2 in Op"),
+        }
+    }
 }

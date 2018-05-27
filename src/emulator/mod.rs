@@ -259,6 +259,20 @@ impl CPU {
         self.set_reg_value(code1, val);
     }
 
+    fn reg_rot_left(&mut self, with_carry: bool) {
+        let val = self.get_reg_value(Register::A);
+        let (result, carry) = math::rot_left(val, with_carry && self.flags.is_set(Flag::C));
+        self.set_reg_value(Register::A, result);
+        self.update_flags(result, Some(carry), None);
+    }
+
+    fn reg_rot_right(&mut self, with_carry: bool) {
+        let val = self.get_reg_value(Register::A);
+        let (result, carry) = math::rot_right(val, with_carry && self.flags.is_set(Flag::C));
+        self.set_reg_value(Register::A, result);
+        self.update_flags(result, Some(carry), None);
+    }
+
     fn reg_pair_add(&mut self, code1: Register, code2: Register, val: u16, set_carry: bool) {
         let old_val = self.get_reg_pair_value(code1, code2);
 

@@ -12,8 +12,16 @@ impl CPU {
 
         match opcode {
             0x00 => (),
-            0x01 => (),
-            0x02 => (),
+            0x01 | 0x11 | 0x21 => {
+                let (reg1, reg2) = Register::pair_by_code((opcode >> 4) & 0x01);
+                self.set_reg_value(reg1, op.arg1());
+                self.set_reg_value(reg2, op.arg2());
+            }
+            0x02 | 0x12 => {
+                let (reg1, reg2) = Register::pair_by_code((opcode >> 4) & 0x01);
+                let addr = self.get_reg_pair_value(reg1, reg2);
+                self.memory.set(addr, self.a);
+            }
             0x03 | 0x13 | 0x23 => {
                 let (reg1, reg2) = Register::pair_by_code(opcode >> 4);
                 self.reg_pair_add(reg1, reg2, 1, false);
@@ -26,34 +34,32 @@ impl CPU {
                 let reg = Register::by_code(opcode >> 3);
                 self.reg_sub(reg, 1, false);
             }
-            0x06 => (),
-            0x07 => (),
-            0x08 => (),
+            0x06 | 0x0e | 0x16 | 0x1e | 0x26 | 0x2e | 0x36 | 0x3e => {
+                let reg = Register::by_code(opcode >> 3);
+                self.set_reg_value(reg, op.arg1());
+            }
+            0x07 | 0x17 => self.reg_rot_left((opcode & 0x10) > 0),
+            0x08 | 0x10 | 0x18 | 0x28 | 0x38 | 0xcb | 0xd9 | 0xdd | 0xed | 0xfd => {
+                panic!("Invalid intruction")
+            }
             0x09 | 0x19 | 0x29 => {
                 let (reg1, reg2) = Register::pair_by_code(opcode >> 4);
                 let val = self.get_reg_pair_value(reg1, reg2);
                 self.reg_pair_add(Register::H, Register::L, val, true);
             }
-            0x0a => (),
+            0x0a | 0x1a => {
+                let (reg1, reg2) = Register::pair_by_code((opcode >> 4) & 0x01);
+                let addr = self.get_reg_pair_value(reg1, reg2);
+                let val = self.memory.get(addr);
+                self.set_reg_value(Register::A, val);
+            }
             0x0b | 0x1b | 0x2b => {
                 let (reg1, reg2) = Register::pair_by_code(opcode >> 4);
                 self.reg_pair_add(reg1, reg2, -1i16 as u16, false);
             }
-            0x0e => (),
-            0x0f => (),
-            0x10 => (),
-            0x11 => (),
-            0x12 => (),
-            0x16 => (),
-            0x17 => (),
-            0x18 => (),
-            0x1a => (),
-            0x1e => (),
-            0x1f => (),
+            0x0f | 0x1f => self.reg_rot_right((opcode & 0x10) > 0),
             0x20 => (),
-            0x21 => (),
             0x22 => (),
-            0x26 => (),
             0x27 => {
                 if (self.a & 0x0F) > 9 || self.flags.is_set(Flag::AC) {
                     let (result, _, acarry) = math::add_8(self.a, 6);
@@ -67,21 +73,16 @@ impl CPU {
                     self.flags.set(Flag::C, carry);
                 }
             }
-            0x28 => (),
             0x2a => (),
-            0x2e => (),
             0x2f => self.a = !self.a,
             0x30 => (),
             0x31 => (),
             0x32 => (),
             0x33 => (),
-            0x36 => (),
             0x37 => self.flags.set(Flag::C, true),
-            0x38 => (),
             0x39 => (),
             0x3a => (),
             0x3b => (),
-            0x3e => (),
             0x3f => self.flags.flip(Flag::C),
             0x76 => (),
             0x40...0x7f => {
@@ -128,15 +129,14 @@ impl CPU {
             0xc3 => (),
             0xc4 => (),
             0xc5 => (),
-            0xc6 => (),
+            0xc6 => self.reg_add(Register::A, op.arg1(), false),
             0xc7 => (),
             0xc8 => (),
             0xc9 => (),
             0xca => (),
-            0xcb => (),
             0xcc => (),
             0xcd => (),
-            0xce => (),
+            0xce => self.reg_add(Register::A, op.arg1(), true),
             0xcf => (),
             0xd0 => (),
             0xd1 => (),
@@ -144,47 +144,60 @@ impl CPU {
             0xd3 => (),
             0xd4 => (),
             0xd5 => (),
-            0xd6 => (),
+            0xd6 => self.reg_sub(Register::A, op.arg1(), false),
             0xd7 => (),
             0xd8 => (),
-            0xd9 => (),
             0xda => (),
             0xdb => (),
             0xdc => (),
-            0xdd => (),
-            0xde => (),
+            0xde => self.reg_sub(Register::A, op.arg1(), true),
             0xdf => (),
             0xe0 => (),
             0xe1 => (),
             0xe2 => (),
-            0xe3 => (),
+            0xe3 => {
+                let reg_h = self.get_reg_value(Register::H);
+                let reg_l = self.get_reg_value(Register::L);
+
+                let memory_lower = self.memory.get(self.sp);
+                let memory_higher = self.memory.get(self.sp + 1);
+
+                self.set_reg_value(Register::L, memory_lower);
+                self.set_reg_value(Register::H, memory_higher);
+
+                self.memory.set(self.sp, reg_l);
+                self.memory.set(self.sp + 1, reg_h);
+            }
             0xe4 => (),
             0xe5 => (),
-            0xe6 => (),
+            0xe6 => self.reg_and(Register::A, op.arg1()),
             0xe7 => (),
             0xe8 => (),
             0xe9 => (),
             0xea => (),
-            0xeb => (),
+            0xeb => {
+                let v1 = self.get_reg_pair_value(Register::H, Register::L);
+                let v2 = self.get_reg_pair_value(Register::D, Register::E);
+                self.set_reg_pair_value(Register::H, Register::L, v2);
+                self.set_reg_pair_value(Register::D, Register::E, v1);
+            }
             0xec => (),
-            0xed => (),
-            0xee => (),
+            0xee => self.reg_xor(Register::A, op.arg1()),
             0xef => (),
             0xf0 => (),
             0xf1 => (),
             0xf2 => (),
-            0xf3 => (),
+            0xf3 => self.enable_interrupts = false,
             0xf4 => (),
             0xf5 => (),
-            0xf6 => (),
+            0xf6 => self.reg_or(Register::A, op.arg1()),
             0xf7 => (),
             0xf8 => (),
-            0xf9 => (),
+            0xf9 => self.sp = self.get_reg_pair_value(Register::H, Register::L),
             0xfa => (),
-            0xfb => (),
+            0xfb => self.enable_interrupts = true,
             0xfc => (),
-            0xfd => (),
-            0xfe => (),
+            0xfe => self.reg_cmp(Register::A, op.arg1()),
             0xff => (),
             _ => panic!("Encountered opcode outside of u16 scope"),
         }
@@ -486,6 +499,82 @@ mod test {
     }
 
     #[test]
+    fn test_rlc() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x07);
+        cpu.a = 0b10110010;
+        cpu.flags.set(Flag::C, true);
+        cpu.tick();
+
+        assert_eq!(cpu.a, 0b01100100);
+        assert!(cpu.flags.is_set(Flag::C));
+    }
+
+    #[test]
+    fn test_ral() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x17);
+        cpu.a = 0b00110010;
+        cpu.flags.set(Flag::C, true);
+        cpu.tick();
+
+        assert_eq!(cpu.a, 0b01100101);
+        assert!(!cpu.flags.is_set(Flag::C));
+    }
+
+    #[test]
+    fn test_ral_no_carry() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x17);
+        cpu.a = 0b10110010;
+        cpu.tick();
+
+        assert_eq!(cpu.a, 0b01100100);
+        assert!(cpu.flags.is_set(Flag::C));
+    }
+
+    #[test]
+    fn test_rrc() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x0f);
+        cpu.a = 0b00110011;
+        cpu.flags.set(Flag::C, true);
+        cpu.tick();
+
+        assert_eq!(cpu.a, 0b00011001);
+        assert!(cpu.flags.is_set(Flag::C));
+    }
+
+    #[test]
+    fn test_rar() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x1f);
+        cpu.a = 0b10110010;
+        cpu.flags.set(Flag::C, true);
+        cpu.tick();
+
+        assert_eq!(cpu.a, 0b11011001);
+        assert!(!cpu.flags.is_set(Flag::C));
+    }
+
+    #[test]
+    fn test_rar_no_carry() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x1f);
+        cpu.a = 0b10110011;
+        cpu.tick();
+
+        assert_eq!(cpu.a, 0b01011001);
+        assert!(cpu.flags.is_set(Flag::C));
+    }
+
+    #[test]
     fn test_inx() {
         let mut cpu = CPU::new(init_decoder());
 
@@ -558,5 +647,37 @@ mod test {
         assert_eq!(cpu.a, 1);
         assert!(cpu.flags.is_set(Flag::C));
         assert!(cpu.flags.is_set(Flag::AC));
+    }
+
+    #[test]
+    fn test_stax() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x02);
+        cpu.a = 93;
+
+        let mem_addr = 0xd033;
+        cpu.memory.set(mem_addr, 33);
+        cpu.b = math::higher_8(mem_addr);
+        cpu.c = math::lower_8(mem_addr);
+        cpu.tick();
+
+        assert_eq!(cpu.memory.get(mem_addr), 93);
+    }
+
+    #[test]
+    fn ldax() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x1a);
+        cpu.a = 3;
+
+        let mem_addr = 0xd011;
+        cpu.memory.set(mem_addr, 54);
+        cpu.d = math::higher_8(mem_addr);
+        cpu.e = math::lower_8(mem_addr);
+        cpu.tick();
+
+        assert_eq!(cpu.a, 54);
     }
 }
