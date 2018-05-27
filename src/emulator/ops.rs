@@ -83,70 +83,12 @@ impl CPU {
             0x3b => (),
             0x3e => (),
             0x3f => self.flags.flip(Flag::C),
-            0x40 => (),
-            0x41 => (),
-            0x42 => (),
-            0x43 => (),
-            0x44 => (),
-            0x45 => (),
-            0x46 => (),
-            0x47 => (),
-            0x48 => (),
-            0x49 => (),
-            0x4a => (),
-            0x4b => (),
-            0x4c => (),
-            0x4d => (),
-            0x4e => (),
-            0x4f => (),
-            0x50 => (),
-            0x51 => (),
-            0x52 => (),
-            0x53 => (),
-            0x54 => (),
-            0x55 => (),
-            0x56 => (),
-            0x57 => (),
-            0x58 => (),
-            0x59 => (),
-            0x5a => (),
-            0x5b => (),
-            0x5c => (),
-            0x5d => (),
-            0x5e => (),
-            0x5f => (),
-            0x60 => (),
-            0x61 => (),
-            0x62 => (),
-            0x63 => (),
-            0x64 => (),
-            0x65 => (),
-            0x66 => (),
-            0x67 => (),
-            0x68 => (),
-            0x69 => (),
-            0x6a => (),
-            0x6b => (),
-            0x6c => (),
-            0x6d => (),
-            0x6e => (),
-            0x6f => (),
-            0x70 => (),
-            0x71 => (),
-            0x72 => (),
-            0x73 => (),
-            0x74 => (),
-            0x75 => (),
             0x76 => (),
-            0x77 => (),
-            0x78 => (),
-            0x79 => (),
-            0x7a => (),
-            0x7b => (),
-            0x7c => (),
-            0x7d => (),
-            0x7e => (),
-            0x7f => (),
+            0x40...0x7f => {
+                let src = Register::by_code(opcode);
+                let dst = Register::by_code(opcode >> 3);
+                self.reg_mov(dst, src);
+            }
             0x80...0x87 => {
                 let val = self.get_reg_value(Register::by_code(opcode));
                 self.reg_add(Register::A, val, false);
@@ -373,9 +315,10 @@ mod test {
         let mut cpu = CPU::new(init_decoder());
 
         set_op_at_rnd_addr(&mut cpu, 0x86);
+        cpu.a = 3;
+
         let mem_addr = 0xf000;
         cpu.memory.set(mem_addr, 5);
-        cpu.a = 3;
         cpu.h = math::higher_8(mem_addr);
         cpu.l = math::lower_8(mem_addr);
         cpu.tick();
@@ -498,6 +441,48 @@ mod test {
         assert!(!cpu.flags.is_set(Flag::Z));
         assert!(!cpu.flags.is_set(Flag::C));
         assert!(cpu.flags.is_set(Flag::P));
+    }
+
+    #[test]
+    fn test_mov() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x6a);
+        cpu.l = 5;
+        cpu.d = 83;
+        cpu.tick();
+
+        assert_eq!(cpu.l, 83);
+    }
+
+    #[test]
+    fn test_mov_from_mem() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x5e);
+        cpu.e = 5;
+
+        let mem_addr = 0xf0a0;
+        cpu.memory.set(mem_addr, 12);
+        cpu.h = math::higher_8(mem_addr);
+        cpu.l = math::lower_8(mem_addr);
+        cpu.tick();
+
+        assert_eq!(cpu.e, 12);
+    }
+
+    #[test]
+    fn test_mov_to_mem() {
+        let mut cpu = CPU::new(init_decoder());
+
+        set_op_at_rnd_addr(&mut cpu, 0x74);
+        let mem_addr = 0xf0a0;
+        cpu.memory.set(mem_addr, 12);
+        cpu.h = math::higher_8(mem_addr);
+        cpu.l = math::lower_8(mem_addr);
+        cpu.tick();
+
+        assert_eq!(cpu.memory.get(mem_addr), 0xf0);
     }
 
     #[test]

@@ -254,6 +254,11 @@ impl CPU {
         self.update_flags(result, Some(carry), Some(acarry));
     }
 
+    fn reg_mov(&mut self, code1: Register, code2: Register) {
+        let val = self.get_reg_value(code2);
+        self.set_reg_value(code1, val);
+    }
+
     fn reg_pair_add(&mut self, code1: Register, code2: Register, val: u16, set_carry: bool) {
         let old_val = self.get_reg_pair_value(code1, code2);
 
