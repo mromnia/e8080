@@ -203,7 +203,7 @@ impl CPU {
             0xd2 => if !self.flags.is_set(Flag::C) {
                 pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
             },
-            0xd3 => not_implemented(),
+            0xd3 => (),
             0xd4 => if !self.flags.is_set(Flag::C) {
                 self.push(math::higher_8(pc_after), math::lower_8(pc_after));
                 pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
@@ -217,7 +217,7 @@ impl CPU {
             0xda => if self.flags.is_set(Flag::C) {
                 pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
             },
-            0xdb => not_implemented(),
+            0xdb => (),
             0xdc => if self.flags.is_set(Flag::C) {
                 self.push(math::higher_8(pc_after), math::lower_8(pc_after));
                 pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
