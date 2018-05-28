@@ -1,7 +1,6 @@
-mod disassembler;
-mod emulator;
-mod opcode_decoder;
+extern crate e8080;
 
+use e8080::*;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
