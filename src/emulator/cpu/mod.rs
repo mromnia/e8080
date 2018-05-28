@@ -256,9 +256,7 @@ impl CPU {
         let (result, carry, acarry) = math::sub_8(old_val, val + carry_val);
         self.set_reg_value(code, result);
         let carry = if set_carry { Some(carry) } else { None };
-        println!("{:?}", carry);
         self.update_flags(result, carry, Some(acarry));
-        println!("{:?}", self.flags.is_set(Flag::C));
     }
 
     fn reg_and(&mut self, code: Register, val: u8) {
