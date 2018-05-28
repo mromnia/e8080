@@ -36,7 +36,7 @@ impl OpcodeDecoder {
         OpcodeDecoder { opcodes: register }
     }
 
-    pub fn get_next_op(&self, program: &[u8]) -> Result<(Op, usize), &'static str> {
+    pub fn get_next_op(&self, program: &[u8]) -> Result<(Op, usize), String> {
         if let Some(optype) = self.opcodes.get(&program[0]) {
             let mut op = Op {
                 optype: Rc::downgrade(&optype),
@@ -55,7 +55,7 @@ impl OpcodeDecoder {
 
             Ok((op, optype.len))
         } else {
-            Err("Invalid opcode")
+            Err(format!("Invalid opcode: {}", program[0]))
         }
     }
 }

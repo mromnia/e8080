@@ -18,11 +18,11 @@ enum Flag {
 impl Flag {
     pub fn bit(&self) -> u8 {
         match self {
-            Flag::S => 0x01,
-            Flag::Z => 0x02,
-            Flag::AC => 0x08,
-            Flag::P => 0x20,
-            Flag::C => 0x80,
+            Flag::S => 0x80,
+            Flag::Z => 0x40,
+            Flag::AC => 0x01,
+            Flag::P => 0x04,
+            Flag::C => 0x01,
         }
     }
 }
@@ -37,6 +37,9 @@ enum Register {
     H,
     L,
     Memory,
+    S,
+    P,
+    Flags,
 }
 
 impl Register {
@@ -59,6 +62,17 @@ impl Register {
             0x00 => (Register::B, Register::C),
             0x01 => (Register::D, Register::E),
             0x02 => (Register::H, Register::L),
+            0x03 => (Register::S, Register::P),
+            _ => panic!("Invalid register code"),
+        }
+    }
+
+    pub fn pair_by_code_pushpop(code: u8) -> (Register, Register) {
+        match code & 0x03 {
+            0x00 => (Register::B, Register::C),
+            0x01 => (Register::D, Register::E),
+            0x02 => (Register::H, Register::L),
+            0x03 => (Register::Flags, Register::A),
             _ => panic!("Invalid register code"),
         }
     }
@@ -99,9 +113,9 @@ impl CPU {
             e: 0,
             h: 0,
             l: 0,
-            sp: 0,
+            sp: 0xf000,
             pc: 0,
-            flags: Flags { flags: 0 },
+            flags: Flags { flags: 0x02 },
             enable_interrupts: false,
             memory: Memory::new(),
 
@@ -119,6 +133,17 @@ impl CPU {
             .unwrap();
 
         self.execute_op(&op, len);
+    }
+
+    pub fn print_state(&self) {
+        println!(
+            "{:#04x?} {:#04x?} {:#04x?} {:#04x?} {:#04x?} {:#04x?} {:#04x?}",
+            self.a, self.b, self.c, self.d, self.e, self.h, self.l
+        );
+        println!(
+            "{:#010b} {:#06x?} {:#06x?}",
+            self.flags.flags, self.sp, self.pc
+        );
     }
 
     pub fn update_flags(&mut self, result: u8, carry: Option<bool>, acarry: Option<bool>) {
@@ -176,6 +201,9 @@ impl CPU {
     fn get_reg_value(&self, code: Register) -> u8 {
         match code {
             Register::Memory => self.memory.get(math::combine_8_to_16(self.h, self.l)),
+            Register::S => math::higher_8(self.sp),
+            Register::P => math::lower_8(self.sp),
+            Register::Flags => self.flags.flags,
             _ => *self.get_reg(code),
         }
     }
@@ -183,6 +211,9 @@ impl CPU {
     fn set_reg_value(&mut self, code: Register, val: u8) {
         match code {
             Register::Memory => self.memory.set(math::combine_8_to_16(self.h, self.l), val),
+            Register::S => self.sp = (self.sp & 0x00FF) | ((val as u16) << 8),
+            Register::P => self.sp = (self.sp & 0xFF00) | (val as u16),
+            Register::Flags => self.flags.flags = (val & 0b11010111) | 0x02,
             _ => *self.get_reg_mut(code) = val,
         };
     }
@@ -198,7 +229,7 @@ impl CPU {
         self.set_reg_value(code1, math::higher_8(val));
     }
 
-    fn reg_add(&mut self, code: Register, val: u8, with_carry: bool) {
+    fn reg_add(&mut self, code: Register, val: u8, set_carry: bool, with_carry: bool) {
         let old_val = self.get_reg_value(code);
 
         let carry_val = if with_carry && self.flags.is_set(Flag::C) {
@@ -209,10 +240,11 @@ impl CPU {
 
         let (result, carry, acarry) = math::add_8(old_val, val + carry_val);
         self.set_reg_value(code, result);
-        self.update_flags(result, Some(carry), Some(acarry));
+        let carry = if set_carry { Some(carry) } else { None };
+        self.update_flags(result, carry, Some(acarry));
     }
 
-    fn reg_sub(&mut self, code: Register, val: u8, with_carry: bool) {
+    fn reg_sub(&mut self, code: Register, val: u8, set_carry: bool, with_carry: bool) {
         let old_val = self.get_reg_value(code);
 
         let carry_val = if with_carry && self.flags.is_set(Flag::C) {
@@ -223,7 +255,8 @@ impl CPU {
 
         let (result, carry, acarry) = math::sub_8(old_val, val + carry_val);
         self.set_reg_value(code, result);
-        self.update_flags(result, Some(carry), Some(acarry));
+        let carry = if set_carry { Some(carry) } else { None };
+        self.update_flags(result, carry, Some(acarry));
     }
 
     fn reg_and(&mut self, code: Register, val: u8) {
@@ -283,6 +316,20 @@ impl CPU {
         if set_carry {
             self.flags.set(Flag::C, carry);
         }
+    }
+
+    fn push(&mut self, val1: u8, val2: u8) {
+        self.memory.set(self.sp - 1, val1);
+        self.memory.set(self.sp - 2, val2);
+        self.sp -= 2;
+    }
+
+    fn pop(&mut self) -> (u8, u8) {
+        let val1 = self.memory.get(self.sp + 1);
+        let val2 = self.memory.get(self.sp);
+        self.sp += 2;
+
+        (val1, val2)
     }
 }
 

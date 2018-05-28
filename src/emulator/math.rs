@@ -1,12 +1,17 @@
+pub fn add_4(x: u8, y: u8) -> (u8, bool) {
+    let x = x & 0x0F;
+    let y = y & 0x0F;
+    let result = x + y;
+    let carry = (result & 0xF0) > 0;
+
+    (result, carry)
+}
+
 pub fn add_8(x: u8, y: u8) -> (u8, bool, bool) {
     let result: u16 = (x as u16) + (y as u16);
     let carry = (result & 0xFF00) > 0;
-    let acarry = check_add_acarry(result as u8, x, y);
+    let (_, acarry) = add_4(x, y);
     (result as u8, carry, acarry)
-}
-
-fn check_add_acarry(result: u8, x: u8, y: u8) -> bool {
-    result & 0x08 != ((x & 0x08) ^ (y & 0x08))
 }
 
 pub fn add_16(x: u16, y: u16) -> (u16, bool) {

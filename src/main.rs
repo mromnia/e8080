@@ -3,6 +3,7 @@ mod emulator;
 mod opcode_decoder;
 
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 
 static DISASSEMBLE: bool = false;
@@ -46,5 +47,27 @@ fn main() {
     } else {
         let mut cpu = emulator::CPU::new(decoder);
         cpu.set_memory(0, &rom_data);
+
+        loop {
+            let mut cmd = String::new();
+            io::stdin().read_line(&mut cmd).unwrap();
+
+            let mut ticks = 1;
+
+            if cmd.trim().len() > 0 {
+                ticks = cmd.trim().parse().unwrap();
+            }
+
+            loop {
+                cpu.tick();
+                ticks -= 1;
+
+                if ticks == 0 {
+                    break;
+                }
+            }
+
+            cpu.print_state();
+        }
     }
 }

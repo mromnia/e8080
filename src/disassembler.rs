@@ -21,7 +21,6 @@ impl Disassembler {
                     ops.push(op);
                     pointer += len;
                 }
-                Err("Invalid opcode") => pointer += 1,
                 Err(err) => panic!(err),
             }
         }
