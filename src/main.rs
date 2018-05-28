@@ -45,7 +45,7 @@ fn main() {
             }
         }
     } else {
-        let mut cpu = emulator::CPU::new(decoder);
+        let mut cpu = emulator::cpu::CPU::new(decoder);
         cpu.set_memory(0, &rom_data);
 
         loop {
