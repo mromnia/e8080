@@ -20,7 +20,7 @@ impl Flag {
         match self {
             Flag::S => 0x80,
             Flag::Z => 0x40,
-            Flag::AC => 0x01,
+            Flag::AC => 0x10,
             Flag::P => 0x04,
             Flag::C => 0x01,
         }
