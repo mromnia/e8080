@@ -25,6 +25,20 @@ impl Flag {
             Flag::C => 0x01,
         }
     }
+
+    pub fn by_jmp_code(code: u8) -> (Flag, bool) {
+        match code & 0b00111000 {
+            0b00000000 => (Flag::Z, false),
+            0b00001000 => (Flag::Z, true),
+            0b00010000 => (Flag::C, false),
+            0b00011000 => (Flag::C, true),
+            0b00100000 => (Flag::P, false),
+            0b00101000 => (Flag::P, true),
+            0b00110000 => (Flag::S, false),
+            0b00111000 => (Flag::S, true),
+            _ => panic!("Invalid jump instruction code - could not get flag"),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -128,7 +142,8 @@ impl CPU {
     }
 
     pub fn tick(&mut self) {
-        let (op, len) = self.decoder
+        let (op, len) = self
+            .decoder
             .get_next_op(self.memory.get_to_end(self.pc))
             .unwrap();
 

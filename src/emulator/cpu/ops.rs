@@ -5,7 +5,16 @@ fn not_implemented() {
     panic!("Not implemented");
 }
 
+pub fn get_jmp_addr(op: &Op) -> u16 {
+    math::combine_8_to_16(op.arg1(), op.arg2())
+}
+
 impl CPU {
+    pub fn should_jmp(&self, opcode: u8) -> bool {
+        let (flag, value) = Flag::by_jmp_code(opcode);
+        self.flags.is_set(flag) == value
+    }
+
     pub fn execute_op(&mut self, op: &Op, len: usize) {
         let opcode = match op.optype.upgrade() {
             Some(optype) => optype.opcode,
@@ -98,7 +107,8 @@ impl CPU {
             }
             0x2f => self.a = !self.a,
             0x30 => not_implemented(),
-            0x32 => self.memory
+            0x32 => self
+                .memory
                 .set(math::combine_8_to_16(op.arg1(), op.arg2()), self.a),
             0x37 => self.flags.set(Flag::C, true),
             0x3a => self.a = self.memory.get(math::combine_8_to_16(op.arg1(), op.arg2())),
@@ -142,7 +152,7 @@ impl CPU {
                 let val = self.get_reg_value(Register::by_code(opcode));
                 self.reg_cmp(Register::A, val);
             }
-            0xc0 => if !self.flags.is_set(Flag::Z) {
+            0xc0 | 0xc8 | 0xd0 | 0xd8 | 0xe0 | 0xe8 | 0xf0 | 0xf8 => if self.should_jmp(opcode) {
                 let (addr1, addr2) = self.pop();
                 let addr = math::combine_8_to_16(addr1, addr2);
                 pc_after = addr;
@@ -153,13 +163,13 @@ impl CPU {
                 self.set_reg_value(reg1, val1);
                 self.set_reg_value(reg2, val2);
             }
-            0xc2 => if !self.flags.is_set(Flag::Z) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
+            0xc2 | 0xca | 0xd2 | 0xda | 0xe2 | 0xea | 0xf2 | 0xfa => if self.should_jmp(opcode) {
+                pc_after = get_jmp_addr(op)
             },
-            0xc3 => pc_after = math::combine_8_to_16(op.arg1(), op.arg2()),
-            0xc4 => if !self.flags.is_set(Flag::Z) {
+            0xc3 => pc_after = get_jmp_addr(op),
+            0xc4 | 0xcc | 0xd4 | 0xdc | 0xe4 | 0xec | 0xf4 | 0xfc => if self.should_jmp(opcode) {
                 self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
+                pc_after = get_jmp_addr(op);
             },
             0xc5 | 0xd5 | 0xe5 | 0xf5 => {
                 let (reg1, reg2) = Register::pair_by_code_pushpop(opcode >> 4);
@@ -173,64 +183,20 @@ impl CPU {
                 let exp = op.arg1() & 0x38;
                 pc_after = exp as u16;
             }
-            0xc8 => if self.flags.is_set(Flag::Z) {
-                let (addr1, addr2) = self.pop();
-                let addr = math::combine_8_to_16(addr1, addr2);
-                pc_after = addr;
-            },
             0xc9 => {
                 let (addr1, addr2) = self.pop();
                 let addr = math::combine_8_to_16(addr1, addr2);
                 pc_after = addr;
             }
-            0xca => if self.flags.is_set(Flag::Z) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
-            0xcc => if self.flags.is_set(Flag::Z) {
-                self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xcd => {
                 self.push(math::higher_8(pc_after), math::lower_8(pc_after));
                 pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
             }
             0xce => self.reg_add(Register::A, op.arg1(), true, true),
-            0xd0 => if !self.flags.is_set(Flag::C) {
-                let (addr1, addr2) = self.pop();
-                let addr = math::combine_8_to_16(addr1, addr2);
-                pc_after = addr;
-            },
-            0xd2 => if !self.flags.is_set(Flag::C) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xd3 => (),
-            0xd4 => if !self.flags.is_set(Flag::C) {
-                self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xd6 => self.reg_sub(Register::A, op.arg1(), true, false),
-            0xd8 => if self.flags.is_set(Flag::C) {
-                let (addr1, addr2) = self.pop();
-                let addr = math::combine_8_to_16(addr1, addr2);
-                pc_after = addr;
-            },
-            0xda => if self.flags.is_set(Flag::C) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xdb => (),
-            0xdc => if self.flags.is_set(Flag::C) {
-                self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xde => self.reg_sub(Register::A, op.arg1(), true, true),
-            0xe0 => if !self.flags.is_set(Flag::P) {
-                let (addr1, addr2) = self.pop();
-                let addr = math::combine_8_to_16(addr1, addr2);
-                pc_after = addr;
-            },
-            0xe2 => if !self.flags.is_set(Flag::P) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xe3 => {
                 let reg_h = self.get_reg_value(Register::H);
                 let reg_l = self.get_reg_value(Register::L);
@@ -244,59 +210,19 @@ impl CPU {
                 self.memory.set(self.sp + 1, reg_h);
                 self.memory.set(self.sp, reg_l);
             }
-            0xe4 => if !self.flags.is_set(Flag::P) {
-                self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xe6 => self.reg_and(Register::A, op.arg1()),
-            0xe8 => if self.flags.is_set(Flag::P) {
-                let (addr1, addr2) = self.pop();
-                let addr = math::combine_8_to_16(addr1, addr2);
-                pc_after = addr;
-            },
             0xe9 => pc_after = math::combine_8_to_16(self.h, self.l),
-            0xea => if self.flags.is_set(Flag::P) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xeb => {
                 let v1 = self.get_reg_pair_value(Register::H, Register::L);
                 let v2 = self.get_reg_pair_value(Register::D, Register::E);
                 self.set_reg_pair_value(Register::H, Register::L, v2);
                 self.set_reg_pair_value(Register::D, Register::E, v1);
             }
-            0xec => if self.flags.is_set(Flag::P) {
-                self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xee => self.reg_xor(Register::A, op.arg1()),
-            0xf0 => if !self.flags.is_set(Flag::S) {
-                let (addr1, addr2) = self.pop();
-                let addr = math::combine_8_to_16(addr1, addr2);
-                pc_after = addr;
-            },
-            0xf2 => if !self.flags.is_set(Flag::S) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xf3 => self.enable_interrupts = false,
-            0xf4 => if !self.flags.is_set(Flag::S) {
-                self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xf6 => self.reg_or(Register::A, op.arg1()),
-            0xf8 => if self.flags.is_set(Flag::S) {
-                let (addr1, addr2) = self.pop();
-                let addr = math::combine_8_to_16(addr1, addr2);
-                pc_after = addr;
-            },
             0xf9 => self.sp = self.get_reg_pair_value(Register::H, Register::L),
-            0xfa => if self.flags.is_set(Flag::S) {
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xfb => self.enable_interrupts = true,
-            0xfc => if self.flags.is_set(Flag::S) {
-                self.push(math::higher_8(pc_after), math::lower_8(pc_after));
-                pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
-            },
             0xfe => self.reg_cmp(Register::A, op.arg1()),
             _ => panic!("Encountered opcode outside of u16 scope"),
         }
