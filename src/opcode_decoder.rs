@@ -24,10 +24,19 @@ impl OpcodeDecoder {
 
             let len = parts[2].parse::<u8>().unwrap();
 
+            let cycles = if parts[3].contains("/") {
+                let cycle_parts: Vec<u8> = parts[3].split("/").map(|p| p.parse::<u8>().unwrap()).collect();
+                (cycle_parts[0], cycle_parts[1])
+            } else {
+                let cycles = parts[3].parse::<u8>().unwrap();
+                (cycles, cycles)
+            };
+
             let op = OpType {
                 opcode,
                 instruction,
                 len: len as usize,
+                cycles
             };
 
             register.insert(opcode, Rc::new(op));
@@ -65,6 +74,7 @@ pub struct OpType {
     pub opcode: u8,
     pub instruction: String,
     pub len: usize,
+    pub cycles: (u8, u8),
 }
 
 #[derive(Debug)]
