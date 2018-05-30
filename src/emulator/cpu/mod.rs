@@ -1,13 +1,16 @@
 mod flags;
 mod ops;
+mod port;
 
 use std::boxed::Box;
 
 use self::flags::{Flag, FlagRegister};
+use self::port::Port;
 use super::math;
 use opcode_decoder::*;
 
 const MEMORY_SIZE: usize = 65536;
+const PORT_NUM: usize = 8;
 
 #[derive(Debug, Copy, Clone)]
 enum Register {
@@ -70,9 +73,13 @@ pub struct CPU {
     l: u8,
     sp: u16,
     pc: u16,
-    flags: FlagRegister,
     enable_interrupts: bool,
+
+    flags: FlagRegister,
     memory: Memory,
+
+    in_ports: [Port; PORT_NUM],
+    out_ports: [Port; PORT_NUM],
 
     decoder: OpcodeDecoder,
 }
@@ -97,6 +104,9 @@ impl CPU {
             enable_interrupts: false,
             memory: Memory::new(),
 
+            in_ports: [Port::new(0); PORT_NUM],
+            out_ports: [Port::new(0); PORT_NUM],
+
             decoder,
         }
     }
@@ -105,13 +115,13 @@ impl CPU {
         self.memory.set_block(addr, data);
     }
 
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self) -> u8 {
         let op = self
             .decoder
             .get_next_op(self.memory.get_to_end(self.pc))
             .unwrap();
 
-        self.execute_op(&op);
+        self.execute_op(&op)
     }
 
     pub fn print_state(&self) {
@@ -309,6 +319,33 @@ impl CPU {
         self.sp += 2;
 
         (val1, val2)
+    }
+
+    pub fn get_port(&self, port: usize) -> u8 {
+        if port > 7 {
+            panic!("Requested port: {}", port);
+        }
+
+        self.out_ports[port].get()
+    }
+
+    pub fn set_port(&mut self, port: usize, val: u8) {
+        if port > 7 {
+            panic!("Requested port: {}", port);
+        }
+
+        self.in_ports[port].set(val);
+    }
+
+    pub fn interrupt(&mut self, handler_num: u8) -> u8 {
+        self.enable_interrupts = false;
+
+        let addr_high = math::higher_8(self.pc);
+        let addr_low = math::lower_8(self.pc);
+        self.push(addr_high, addr_low);
+        self.pc = ((handler_num & 0x07) << 3) as u16;
+
+        11
     }
 }
 
