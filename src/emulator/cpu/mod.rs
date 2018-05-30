@@ -1,45 +1,13 @@
+mod flags;
 mod ops;
 
-use super::math;
-use opcode_decoder::*;
 use std::boxed::Box;
 
+use self::flags::{Flag, FlagRegister};
+use super::math;
+use opcode_decoder::*;
+
 const MEMORY_SIZE: usize = 65536;
-
-#[derive(Copy, Clone)]
-enum Flag {
-    S,
-    Z,
-    AC,
-    P,
-    C,
-}
-
-impl Flag {
-    pub fn bit(&self) -> u8 {
-        match self {
-            Flag::S => 0x80,
-            Flag::Z => 0x40,
-            Flag::AC => 0x10,
-            Flag::P => 0x04,
-            Flag::C => 0x01,
-        }
-    }
-
-    pub fn by_jmp_code(code: u8) -> (Flag, bool) {
-        match code & 0b00111000 {
-            0b00000000 => (Flag::Z, false),
-            0b00001000 => (Flag::Z, true),
-            0b00010000 => (Flag::C, false),
-            0b00011000 => (Flag::C, true),
-            0b00100000 => (Flag::P, false),
-            0b00101000 => (Flag::P, true),
-            0b00110000 => (Flag::S, false),
-            0b00111000 => (Flag::S, true),
-            _ => panic!("Invalid jump instruction code - could not get flag"),
-        }
-    }
-}
 
 #[derive(Debug, Copy, Clone)]
 enum Register {
@@ -102,15 +70,11 @@ pub struct CPU {
     l: u8,
     sp: u16,
     pc: u16,
-    flags: Flags,
+    flags: FlagRegister,
     enable_interrupts: bool,
     memory: Memory,
 
     decoder: OpcodeDecoder,
-}
-
-struct Flags {
-    flags: u8,
 }
 
 struct Memory {
@@ -129,7 +93,7 @@ impl CPU {
             l: 0,
             sp: 0xf000,
             pc: 0,
-            flags: Flags { flags: 0x02 },
+            flags: FlagRegister { flags: 0x02 },
             enable_interrupts: false,
             memory: Memory::new(),
 
@@ -142,12 +106,12 @@ impl CPU {
     }
 
     pub fn tick(&mut self) {
-        let (op, len) = self
+        let op = self
             .decoder
             .get_next_op(self.memory.get_to_end(self.pc))
             .unwrap();
 
-        self.execute_op(&op, len);
+        self.execute_op(&op);
     }
 
     pub fn print_state(&self) {
@@ -345,25 +309,6 @@ impl CPU {
         self.sp += 2;
 
         (val1, val2)
-    }
-}
-
-impl Flags {
-    pub fn is_set(&self, flag: Flag) -> bool {
-        self.flags & flag.bit() > 0
-    }
-
-    pub fn set(&mut self, flag: Flag, toggle: bool) {
-        if toggle {
-            self.flags = self.flags | flag.bit();
-        } else {
-            self.flags = self.flags & !flag.bit();
-        }
-    }
-
-    pub fn flip(&mut self, flag: Flag) {
-        let val = self.is_set(flag);
-        self.set(flag, !val);
     }
 }
 

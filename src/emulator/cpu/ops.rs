@@ -15,11 +15,9 @@ impl CPU {
         self.flags.is_set(flag) == value
     }
 
-    pub fn execute_op(&mut self, op: &Op, len: usize) {
-        let opcode = match op.optype.upgrade() {
-            Some(optype) => optype.opcode,
-            None => 0x00,
-        };
+    pub fn execute_op(&mut self, op: &Op) -> u8 {
+        let optype = op.optype.upgrade().unwrap();
+        let opcode = optype.opcode;
 
         match op {
             Op {
@@ -31,7 +29,8 @@ impl CPU {
             _ => println!("{}", op.instruction()),
         }
 
-        let mut pc_after = self.pc + len as u16;
+        let mut pc_after = self.pc + optype.len as u16;
+        let mut cycles = optype.cycles.0;
 
         match opcode {
             0x00 => (),
@@ -156,6 +155,7 @@ impl CPU {
                 let (addr1, addr2) = self.pop();
                 let addr = math::combine_8_to_16(addr1, addr2);
                 pc_after = addr;
+                cycles = optype.cycles.1;
             },
             0xc1 | 0xd1 | 0xe1 | 0xf1 => {
                 let (reg1, reg2) = Register::pair_by_code_pushpop(opcode >> 4);
@@ -164,12 +164,14 @@ impl CPU {
                 self.set_reg_value(reg2, val2);
             }
             0xc2 | 0xca | 0xd2 | 0xda | 0xe2 | 0xea | 0xf2 | 0xfa => if self.should_jmp(opcode) {
-                pc_after = get_jmp_addr(op)
+                pc_after = get_jmp_addr(op);
+                cycles = optype.cycles.1;
             },
             0xc3 => pc_after = get_jmp_addr(op),
             0xc4 | 0xcc | 0xd4 | 0xdc | 0xe4 | 0xec | 0xf4 | 0xfc => if self.should_jmp(opcode) {
                 self.push(math::higher_8(pc_after), math::lower_8(pc_after));
                 pc_after = get_jmp_addr(op);
+                cycles = optype.cycles.1;
             },
             0xc5 | 0xd5 | 0xe5 | 0xf5 => {
                 let (reg1, reg2) = Register::pair_by_code_pushpop(opcode >> 4);
@@ -225,8 +227,10 @@ impl CPU {
             0xfb => self.enable_interrupts = true,
             0xfe => self.reg_cmp(Register::A, op.arg1()),
             _ => panic!("Encountered opcode outside of u16 scope"),
-        }
+        };
 
         self.pc = pc_after;
+
+        cycles
     }
 }

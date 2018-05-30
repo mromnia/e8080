@@ -25,7 +25,10 @@ impl OpcodeDecoder {
             let len = parts[2].parse::<u8>().unwrap();
 
             let cycles = if parts[3].contains("/") {
-                let cycle_parts: Vec<u8> = parts[3].split("/").map(|p| p.parse::<u8>().unwrap()).collect();
+                let cycle_parts: Vec<u8> = parts[3]
+                    .split("/")
+                    .map(|p| p.parse::<u8>().unwrap())
+                    .collect();
                 (cycle_parts[0], cycle_parts[1])
             } else {
                 let cycles = parts[3].parse::<u8>().unwrap();
@@ -36,7 +39,7 @@ impl OpcodeDecoder {
                 opcode,
                 instruction,
                 len: len as usize,
-                cycles
+                cycles,
             };
 
             register.insert(opcode, Rc::new(op));
@@ -45,7 +48,7 @@ impl OpcodeDecoder {
         OpcodeDecoder { opcodes: register }
     }
 
-    pub fn get_next_op(&self, program: &[u8]) -> Result<(Op, usize), String> {
+    pub fn get_next_op(&self, program: &[u8]) -> Result<Op, String> {
         if let Some(optype) = self.opcodes.get(&program[0]) {
             let mut op = Op {
                 optype: Rc::downgrade(&optype),
@@ -62,7 +65,7 @@ impl OpcodeDecoder {
                 op.arg1 = Some(program[2]);
             }
 
-            Ok((op, optype.len))
+            Ok(op)
         } else {
             Err(format!("Invalid opcode: {}", program[0]))
         }

@@ -17,9 +17,10 @@ impl Disassembler {
 
         while pointer < code.len() - 1 {
             match self.opcode_decoder.get_next_op(&code[pointer..]) {
-                Ok((op, len)) => {
+                Ok(op) => {
+                    let optype = op.optype.upgrade().unwrap();
                     ops.push(op);
-                    pointer += len;
+                    pointer += optype.len;
                 }
                 Err(err) => panic!(err),
             }
