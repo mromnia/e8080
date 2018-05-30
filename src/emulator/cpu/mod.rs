@@ -93,7 +93,7 @@ impl CPU {
             l: 0,
             sp: 0xf000,
             pc: 0,
-            flags: FlagRegister { flags: 0x02 },
+            flags: FlagRegister::new(),
             enable_interrupts: false,
             memory: Memory::new(),
 
@@ -121,7 +121,7 @@ impl CPU {
     pub fn to_string(&self) -> String {
         format!(
             "{:#04x?} {:#04x?} {:#04x?} {:#04x?} {:#04x?} {:#04x?} {:#04x?}\n{:#010b} {:#06x?} {:#06x?}",
-            self.a, self.b, self.c, self.d, self.e, self.h, self.l, self.flags.flags, self.sp, self.pc
+            self.a, self.b, self.c, self.d, self.e, self.h, self.l, self.flags.get_all(), self.sp, self.pc
         )
     }
 
@@ -182,7 +182,7 @@ impl CPU {
             Register::Memory => self.memory.get(math::combine_8_to_16(self.h, self.l)),
             Register::S => math::higher_8(self.sp),
             Register::P => math::lower_8(self.sp),
-            Register::Flags => self.flags.flags,
+            Register::Flags => self.flags.get_all(),
             _ => *self.get_reg(code),
         }
     }
@@ -192,7 +192,7 @@ impl CPU {
             Register::Memory => self.memory.set(math::combine_8_to_16(self.h, self.l), val),
             Register::S => self.sp = (self.sp & 0x00FF) | ((val as u16) << 8),
             Register::P => self.sp = (self.sp & 0xFF00) | (val as u16),
-            Register::Flags => self.flags.flags = (val & 0b11010111) | 0x02,
+            Register::Flags => self.flags.set_all(val),
             _ => *self.get_reg_mut(code) = val,
         };
     }

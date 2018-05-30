@@ -34,10 +34,16 @@ impl Flag {
 }
 
 pub struct FlagRegister {
-    pub flags: u8,
+    flags: u8,
 }
 
 impl FlagRegister {
+    pub fn new() -> FlagRegister {
+        let mut reg = FlagRegister { flags: 0 };
+        reg.set_all(0);
+        reg
+    }
+
     pub fn is_set(&self, flag: Flag) -> bool {
         self.flags & flag.bit() > 0
     }
@@ -53,5 +59,13 @@ impl FlagRegister {
     pub fn flip(&mut self, flag: Flag) {
         let val = self.is_set(flag);
         self.set(flag, !val);
+    }
+
+    pub fn get_all(&self) -> u8 {
+        self.flags
+    }
+
+    pub fn set_all(&mut self, val: u8) {
+        self.flags = (val & 0b11010111) | 0x02;
     }
 }
