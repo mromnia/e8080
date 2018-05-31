@@ -1,5 +1,7 @@
 extern crate e8080;
 
+mod renderer;
+
 use e8080::*;
 use std::fs::File;
 use std::io;
@@ -22,6 +24,11 @@ fn main() {
         let mut rom_file = File::open("./data/invaders.rom").unwrap();
         rom_file.read_to_end(&mut rom_data).unwrap();
     }
+
+    let mut am = e8080::emulator::ArcadeMachine::new(decoder, &rom_data);
+
+    renderer::run(&mut am);
+    return;
 
     if DISASSEMBLE {
         let da = disassembler::Disassembler::new(decoder);

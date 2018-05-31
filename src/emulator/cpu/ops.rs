@@ -19,15 +19,15 @@ impl CPU {
         let optype = op.optype.upgrade().unwrap();
         let opcode = optype.opcode;
 
-        match op {
-            Op {
-                arg1: Some(a1),
-                arg2: Some(a2),
-                ..
-            } => println!("{} {:#04x?} {:#04x?}", op.instruction(), a1, a2),
-            Op { arg1: Some(a1), .. } => println!("{} {:#04x?}", op.instruction(), a1),
-            _ => println!("{}", op.instruction()),
-        }
+        // match op {
+        //     Op {
+        //         arg1: Some(a1),
+        //         arg2: Some(a2),
+        //         ..
+        //     } => println!("{} {:#04x?} {:#04x?}", op.instruction(), a1, a2),
+        //     Op { arg1: Some(a1), .. } => println!("{} {:#04x?}", op.instruction(), a1),
+        //     _ => println!("{}", op.instruction()),
+        // }
 
         let mut pc_after = self.pc + optype.len as u16;
         let mut cycles = optype.cycles.0;
@@ -195,9 +195,9 @@ impl CPU {
                 pc_after = math::combine_8_to_16(op.arg1(), op.arg2());
             }
             0xce => self.reg_add(Register::A, op.arg1(), true, true),
-            0xd3 => (),
+            0xd3 => self.write_out_port(op.arg1()),
             0xd6 => self.reg_sub(Register::A, op.arg1(), true, false),
-            0xdb => (),
+            0xdb => self.read_in_port(op.arg1()),
             0xde => self.reg_sub(Register::A, op.arg1(), true, true),
             0xe3 => {
                 let reg_h = self.get_reg_value(Register::H);

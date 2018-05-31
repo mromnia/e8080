@@ -5,7 +5,7 @@ mod port;
 use std::boxed::Box;
 
 use self::flags::{Flag, FlagRegister};
-use self::port::Port;
+use self::port::{InPort, OutPort};
 use super::math;
 use opcode_decoder::*;
 
@@ -78,8 +78,8 @@ pub struct CPU {
     flags: FlagRegister,
     memory: Memory,
 
-    in_ports: [Port; PORT_NUM],
-    out_ports: [Port; PORT_NUM],
+    in_ports: [InPort; PORT_NUM],
+    out_ports: [OutPort; PORT_NUM],
 
     decoder: OpcodeDecoder,
 }
@@ -104,8 +104,8 @@ impl CPU {
             enable_interrupts: false,
             memory: Memory::new(),
 
-            in_ports: [Port::new(0); PORT_NUM],
-            out_ports: [Port::new(0); PORT_NUM],
+            in_ports: [InPort::new(0); PORT_NUM],
+            out_ports: [OutPort::new(0); PORT_NUM],
 
             decoder,
         }
@@ -113,6 +113,10 @@ impl CPU {
 
     pub fn set_memory(&mut self, addr: u16, data: &[u8]) {
         self.memory.set_block(addr, data);
+    }
+
+    pub fn get_memory_to_end(&self, addr: u16) -> &[u8] {
+        self.memory.get_to_end(addr)
     }
 
     pub fn tick(&mut self) -> u8 {
@@ -321,20 +325,43 @@ impl CPU {
         (val1, val2)
     }
 
-    pub fn get_port(&self, port: usize) -> u8 {
-        if port > 7 {
+    pub fn read_in_port(&mut self, port: u8) {
+        let port = port as usize;
+        if port >= PORT_NUM {
             panic!("Requested port: {}", port);
         }
 
-        self.out_ports[port].get()
+        let port = self.in_ports[port];
+        let val = port.read();
+        self.a = val;
     }
 
-    pub fn set_port(&mut self, port: usize, val: u8) {
-        if port > 7 {
+    pub fn write_in_port(&mut self, port: usize, val: u8) {
+        if port >= PORT_NUM {
             panic!("Requested port: {}", port);
         }
 
-        self.in_ports[port].set(val);
+        self.in_ports[port].write(val);
+    }
+
+    pub fn write_out_port(&mut self, port: u8) {
+        let port = port as usize;
+        if port >= PORT_NUM {
+            panic!("Requested port: {}", port);
+        }
+
+        self.out_ports[port].write(self.a);
+    }
+
+    pub fn read_out_port(&self, port: usize) -> (u8, bool) {
+        if port >= PORT_NUM {
+            panic!("Requested port: {}", port);
+        }
+
+        let mut port = self.out_ports[port];
+        let is_dirty = port.is_dirty();
+        let val = port.read();
+        (val, is_dirty)
     }
 
     pub fn interrupt(&mut self, handler_num: u8) -> u8 {
