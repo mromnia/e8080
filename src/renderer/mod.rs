@@ -6,7 +6,7 @@ use renderer::piston::event_loop::*;
 use renderer::piston::input::*;
 use renderer::piston::window::WindowSettings;
 use renderer::piston_window::{
-    clear, image, G2dTexture, OpenGL, PistonWindow, Texture, TextureSettings,
+    clear, image, G2dTexture, Key, OpenGL, PistonWindow, Texture, TextureSettings,
 };
 
 use emulator;
@@ -23,6 +23,10 @@ fn calc_addr_in_buffer(x: u32, y: u32) -> (usize, u32) {
     let addr = x_addr as usize + y_addr as usize;
 
     (addr, y_bit)
+}
+
+fn get_bit(val: u8, bit: u32) -> u8 {
+    (val >> bit) & 0x01
 }
 
 pub fn run(emulator: &mut emulator::ArcadeMachine) {
@@ -47,9 +51,33 @@ pub fn run(emulator: &mut emulator::ArcadeMachine) {
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
+        if let Some(button) = e.press_args() {
+            match button {
+                Button::Keyboard(Key::C) => emulator.coin_key_toggle(true),
+                Button::Keyboard(Key::Left) => emulator.left_p1_key_toggle(true),
+                Button::Keyboard(Key::Right) => emulator.right_p1_key_toggle(true),
+                Button::Keyboard(Key::Space) => emulator.fire_p1_key_toggle(true),
+                Button::Keyboard(Key::S) => emulator.start_p1_key_toggle(true),
+                _ => (),
+            }
+        };
+
+        if let Some(button) = e.release_args() {
+            match button {
+                Button::Keyboard(Key::C) => emulator.coin_key_toggle(false),
+                Button::Keyboard(Key::Left) => emulator.left_p1_key_toggle(false),
+                Button::Keyboard(Key::Right) => emulator.right_p1_key_toggle(false),
+                Button::Keyboard(Key::Space) => emulator.fire_p1_key_toggle(false),
+                Button::Keyboard(Key::S) => emulator.start_p1_key_toggle(false),
+                _ => (),
+            }
+        };
+
         if let Some(r) = e.render_args() {
-            let frame_time = r.ext_dt;
-            let half_time = frame_time / 2.0;
+            // let frame_time = r.ext_dt;
+            // let half_time = frame_time / 2.0;
+
+            let half_time = 1.0 / 60.0 / 2.0;
 
             emulator.run(half_time);
 
@@ -59,7 +87,7 @@ pub fn run(emulator: &mut emulator::ArcadeMachine) {
                 for y in 0..(SIZE_Y / 2) {
                     for x in 0..SIZE_X {
                         let (addr, bit) = calc_addr_in_buffer(x, y);
-                        let val = ((buff[addr] >> bit) & 0x01) * 255;
+                        let val = get_bit(buff[addr], bit) * 255;
 
                         canvas.put_pixel(x, y, im::Rgba([val; 4]));
                     }
@@ -75,7 +103,7 @@ pub fn run(emulator: &mut emulator::ArcadeMachine) {
                 for y in (SIZE_Y / 2)..SIZE_Y {
                     for x in 0..SIZE_X {
                         let (addr, bit) = calc_addr_in_buffer(x, y);
-                        let val = ((buff[addr] >> bit) & 0x01) * 255;
+                        let val = get_bit(buff[addr], bit) * 255;
 
                         canvas.put_pixel(x, y, im::Rgba([val; 4]));
                     }

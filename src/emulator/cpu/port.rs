@@ -1,4 +1,3 @@
-#[derive(Debug, Copy, Clone)]
 pub struct InPort {
     data: u8,
 }
@@ -17,7 +16,6 @@ impl InPort {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
 pub struct OutPort {
     data: u8,
     is_dirty: bool,
