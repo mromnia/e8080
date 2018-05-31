@@ -284,7 +284,6 @@ impl CPU {
     fn reg_cmp(&mut self, code: Register, val: u8) {
         let old_val = self.get_reg_value(code);
         let (result, carry, acarry) = math::sub_8(old_val, val);
-        self.set_reg_value(code, result);
         self.update_flags(result, Some(carry), Some(acarry));
     }
 
