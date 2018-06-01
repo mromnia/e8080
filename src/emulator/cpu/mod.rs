@@ -82,6 +82,8 @@ pub struct CPU {
     out_ports: Vec<OutPort>,
 
     decoder: OpcodeDecoder,
+
+    pub debug: bool,
 }
 
 struct Memory {
@@ -116,6 +118,8 @@ impl CPU {
             out_ports,
 
             decoder,
+
+            debug: false,
         }
     }
 
@@ -123,8 +127,16 @@ impl CPU {
         self.memory.set_block(addr, data);
     }
 
+    pub fn get_memory(&self, addr: u16) -> u8 {
+        self.memory.get(addr)
+    }
+
     pub fn get_memory_to_end(&self, addr: u16) -> &[u8] {
         self.memory.get_to_end(addr)
+    }
+
+    pub fn pc(&self) -> u16 {
+        self.pc
     }
 
     pub fn tick(&mut self) -> u8 {
@@ -263,22 +275,23 @@ impl CPU {
     fn reg_and(&mut self, code: Register, val: u8) {
         let old_val = self.get_reg_value(code);
         let result = old_val & val;
+        let acarry = ((old_val | val) & 0x08) > 0;
         self.set_reg_value(code, result);
-        self.update_flags(result, Some(false), None);
+        self.update_flags(result, Some(false), Some(acarry));
     }
 
     fn reg_xor(&mut self, code: Register, val: u8) {
         let old_val = self.get_reg_value(code);
         let result = old_val ^ val;
         self.set_reg_value(code, result);
-        self.update_flags(result, Some(false), None);
+        self.update_flags(result, Some(false), Some(false));
     }
 
     fn reg_or(&mut self, code: Register, val: u8) {
         let old_val = self.get_reg_value(code);
         let result = old_val | val;
         self.set_reg_value(code, result);
-        self.update_flags(result, Some(false), None);
+        self.update_flags(result, Some(false), Some(false));
     }
 
     fn reg_cmp(&mut self, code: Register, val: u8) {
@@ -294,14 +307,24 @@ impl CPU {
 
     fn reg_rot_left(&mut self, with_carry: bool) {
         let val = self.get_reg_value(Register::A);
-        let (result, carry) = math::rot_left(val, with_carry && self.flags.is_set(Flag::C));
+        let lowest_bit_override = if with_carry {
+            Some(self.flags.is_set(Flag::C))
+        } else {
+            None
+        };
+        let (result, carry) = math::rot_left(val, lowest_bit_override);
         self.set_reg_value(Register::A, result);
         self.update_flags(result, Some(carry), None);
     }
 
     fn reg_rot_right(&mut self, with_carry: bool) {
         let val = self.get_reg_value(Register::A);
-        let (result, carry) = math::rot_right(val, with_carry && self.flags.is_set(Flag::C));
+        let highest_bit_override = if with_carry {
+            Some(self.flags.is_set(Flag::C))
+        } else {
+            None
+        };
+        let (result, carry) = math::rot_right(val, highest_bit_override);
         self.set_reg_value(Register::A, result);
         self.update_flags(result, Some(carry), None);
     }
@@ -376,21 +399,23 @@ impl CPU {
         self.out_ports[port].write(val);
     }
 
-    pub fn interrupt(&mut self, handler_num: u8) -> u8 {
+    pub fn interrupt(&mut self, handler_num: u8) {
         self.enable_interrupts = false;
 
         let addr_high = math::higher_8(self.pc);
         let addr_low = math::lower_8(self.pc);
         self.push(addr_high, addr_low);
         self.pc = ((handler_num & 0x07) << 3) as u16;
-
-        11
     }
 }
 
 impl Memory {
     pub fn new() -> Memory {
-        let data = Box::new([0; MEMORY_SIZE]);
+        let mut data = Box::new([0; MEMORY_SIZE]);
+
+        for i in 0..MEMORY_SIZE {
+            data[i] = 0;
+        }
 
         Memory { data }
     }

@@ -19,15 +19,9 @@ impl CPU {
         let optype = op.optype.upgrade().unwrap();
         let opcode = optype.opcode;
 
-        // match op {
-        //     Op {
-        //         arg1: Some(a1),
-        //         arg2: Some(a2),
-        //         ..
-        //     } => println!("{} {:#04x?} {:#04x?}", op.instruction(), a1, a2),
-        //     Op { arg1: Some(a1), .. } => println!("{} {:#04x?}", op.instruction(), a1),
-        //     _ => println!("{}", op.instruction()),
-        // }
+        if self.debug {
+            println!("{}", op.to_string());
+        }
 
         let mut pc_after = self.pc + optype.len as u16;
         let mut cycles = optype.cycles.0;

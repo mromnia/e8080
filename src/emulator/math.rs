@@ -21,12 +21,14 @@ pub fn add_16(x: u16, y: u16) -> (u16, bool) {
 }
 
 pub fn sub_8(x: u8, y: u8) -> (u8, bool, bool) {
-    let (result, carry, acarry) = add_8(x, negate_8(y));
-    (result, !carry, acarry)
+    let (res_neg, c_neg, ac_neg) = negate_8(y);
+    let (result, carry, acarry) = add_8(x, res_neg);
+    (result, !(carry || c_neg), (acarry || ac_neg))
 }
 
-pub fn negate_8(x: u8) -> u8 {
-    -(x as i8) as u8
+pub fn negate_8(x: u8) -> (u8, bool, bool) {
+    let x = !x;
+    add_8(x, 1)
 }
 
 pub fn combine_8_to_16(x: u8, y: u8) -> u16 {
@@ -41,24 +43,49 @@ pub fn lower_8(x: u16) -> u8 {
     x as u8
 }
 
-pub fn rot_left(x: u8, with_carry: bool) -> (u8, bool) {
-    let mut x = (x as u16) << 1;
+pub fn rot_left(x: u8, lowest_bit_override: Option<bool>) -> (u8, bool) {
+    let mut x = x as u16;
+    x = (x << 1) | (x >> 7);
+
     let carry = (x & 0xFF00) > 0;
 
-    if with_carry {
-        x |= 0x01;
+    if let Some(b) = lowest_bit_override {
+        if b {
+            x |= 0x01
+        } else {
+            x &= !0x01
+        }
     }
 
     (x as u8, carry)
 }
 
-pub fn rot_right(x: u8, with_carry: bool) -> (u8, bool) {
+pub fn rot_right(x: u8, highest_bit_override: Option<bool>) -> (u8, bool) {
     let carry = (x & 0x01) > 0;
-    let mut x = (x as u16) >> 1;
 
-    if with_carry {
-        x |= 0x80;
+    let mut x = x as u16;
+    x = (x >> 1) | (x << 7);
+
+    if let Some(b) = highest_bit_override {
+        if b {
+            x |= 0x80
+        } else {
+            x &= !0x80
+        }
     }
 
     (x as u8, carry)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_sub8() {
+        let (result, carry, acarry) = sub_8(5, 0);
+        assert_eq!(result, 5);
+        assert!(carry);
+        assert!(acarry);
+    }
 }

@@ -67,7 +67,7 @@ impl OpcodeDecoder {
 
             Ok(op)
         } else {
-            Err(format!("Invalid opcode: {}", program[0]))
+            Err(format!("Invalid opcode: {:#04x?}", program[0]))
         }
     }
 }
@@ -107,6 +107,18 @@ impl Op {
         match self.arg2 {
             Some(a) => a,
             None => panic!("Expected arg2 in Op"),
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Op {
+                arg1: Some(a1),
+                arg2: Some(a2),
+                ..
+            } => format!("{} {:#04x?} {:#04x?}", self.instruction(), a1, a2),
+            Op { arg1: Some(a1), .. } => format!("{} {:#04x?}", self.instruction(), a1),
+            _ => format!("{}", self.instruction()),
         }
     }
 }
