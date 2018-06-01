@@ -1,4 +1,6 @@
 
 /target
 **/*.rs.bk
+.vscode/
 data/invaders.rom
+data/cpudiag.bin

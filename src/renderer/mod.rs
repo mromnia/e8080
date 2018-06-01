@@ -73,10 +73,7 @@ pub fn run(emulator: &mut emulator::ArcadeMachine) {
             }
         };
 
-        if let Some(r) = e.render_args() {
-            // let frame_time = r.ext_dt;
-            // let half_time = frame_time / 2.0;
-
+        if let Some(_) = e.render_args() {
             let half_time = 1.0 / 60.0 / 2.0;
 
             emulator.run(half_time);
@@ -118,7 +115,5 @@ pub fn run(emulator: &mut emulator::ArcadeMachine) {
                 image(&texture, c.transform, gl);
             });
         }
-
-        if let Some(u) = e.update_args() {}
     }
 }

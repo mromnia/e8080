@@ -11,7 +11,7 @@ impl Disassembler {
         Disassembler { opcode_decoder }
     }
 
-    pub fn disassemble(&self, code: &Vec<u8>) -> Vec<opcode_decoder::Op> {
+    pub fn disassemble(&self, code: &[u8]) -> Vec<opcode_decoder::Op> {
         let mut pointer: usize = 0;
         let mut ops = Vec::new();
 
