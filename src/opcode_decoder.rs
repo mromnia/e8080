@@ -48,8 +48,6 @@ impl OpcodeDecoder {
     }
 
     pub fn get_next_op(&self, program: &[u8]) -> Result<Op, String> {
-        self.print_10_ops();
-
         if let Some(optype) = self.opcodes.get(&program[0]) {
             let mut op = Op {
                 optype: Rc::clone(&optype),
@@ -69,19 +67,6 @@ impl OpcodeDecoder {
             Ok(op)
         } else {
             Err(format!("Invalid opcode: {:#04x?}", program[0]))
-        }
-    }
-
-    pub fn print_10_ops(&self) {
-        let mut counter = 0;
-        for (opcode, _) in &self.opcodes {
-            println!("{}", opcode);
-            counter += 1;
-
-            if counter >= 10 {
-                println!("{}", "--------------");
-                return;
-            }
         }
     }
 }

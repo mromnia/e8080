@@ -26,8 +26,7 @@ fn main() {
 }
 
 fn run_game() {
-    let decoder = e8080::decoder_new();
-    let am: *mut e8080::emulator::ArcadeMachine = e8080::am_new(decoder);
+    let am: *mut e8080::emulator::ArcadeMachine = e8080::am_new();
     e8080::am_get_render_buffer(am);
     renderer::run(am);
 }

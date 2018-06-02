@@ -80,7 +80,6 @@ impl ArcadeMachine {
     }
 
     pub fn get_render_buffer(&self) -> &[u8] {
-        println!("{:?}", self.shift_register);
         self.cpu.get_memory_to_end(0x2400)
     }
 

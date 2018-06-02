@@ -3,6 +3,7 @@ pub mod emulator;
 pub mod opcode_decoder;
 
 use emulator::*;
+use std::mem::transmute;
 
 static OPCODES: &'static str = include_str!("../data/opcodes.txt");
 static ROM: &'static [u8] = include_bytes!("../data/invaders.rom");
@@ -13,8 +14,9 @@ pub extern "C" fn decoder_new() -> opcode_decoder::OpcodeDecoder {
 }
 
 #[no_mangle]
-pub extern "C" fn am_new(decoder: opcode_decoder::OpcodeDecoder) -> *mut ArcadeMachine {
-    &mut ArcadeMachine::new(decoder, ROM)
+pub extern "C" fn am_new() -> *mut ArcadeMachine {
+    let ptr = unsafe { transmute(Box::new(ArcadeMachine::new(decoder_new(), ROM))) };
+    ptr
 }
 
 #[no_mangle]
@@ -24,7 +26,6 @@ pub extern "C" fn am_run(am: *mut ArcadeMachine) -> u32 {
 
 #[no_mangle]
 pub extern "C" fn am_get_render_buffer(am: *mut ArcadeMachine) -> *const u8 {
-    println!("{:?}", am);
     unsafe { (*am).get_render_buffer().as_ptr() }
 }
 
