@@ -4,8 +4,8 @@ const SIZE_Y = 256;
 const calcAddrInBuffer = (x, y) => {
     let xAddr = x * (Math.floor(SIZE_Y / 8));
 
-    let yAddr = Math.floor((SIZE_Y - y) / 8);
-    let yBit = (SIZE_Y - y) % 8;
+    let yAddr = Math.floor((SIZE_Y - 1 - y) / 8);
+    let yBit = (SIZE_Y - 1 - y) % 8;
 
     let addr = xAddr + yAddr;
 
@@ -16,11 +16,6 @@ const getBit = (val, bit) => {
     return (val >> bit) & 0x01;
 };
 
-// const app = new PIXI.Application(SIZE_X, SIZE_Y, { antialias: false });
-// document.body.appendChild(app.view);
-// const graphics = new PIXI.Graphics();
-// app.stage.addChild(graphics);
-
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -29,10 +24,6 @@ const drawPixel = (imgData, x, y, white) => {
     const val = white ? 0xFF : 0x00;
     imgData.data[addr] = imgData.data[addr + 1] = imgData.data[addr + 2] = val;
     imgData.data[addr + 3] = 0xFF;
-
-    // graphics.lineStyle(0, 0x000000, 0);
-    // graphics.beginFill(white ? 0xFFFFFF : 0x000000, 1);
-    // graphics.drawRect(x, y, 1, 1);
 };
 
 const init = (emulator) => {
@@ -47,7 +38,7 @@ const init = (emulator) => {
         83: emulator.instance.exports.am_start_p1_key_toggle,
     };
     const onKeyChange = (key, down) => {
-        const fn = keyToFn[key];
+        const fn = keyToFn[key.keyCode];
         if (fn) {
             fn.apply(emulator.instance.exports, [machine, down]);
         }
@@ -66,7 +57,7 @@ const init = (emulator) => {
             0x1c00
         );
 
-        console.log(emulator.instance.exports.am_run(machine));
+        emulator.instance.exports.am_run(machine);
 
         for (let y = 0; y < (SIZE_Y / 2); ++y) {
             for (let x = 0; x < SIZE_X; ++x) {
