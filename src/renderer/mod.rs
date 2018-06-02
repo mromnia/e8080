@@ -17,8 +17,8 @@ const SIZE_Y: u32 = 256;
 fn calc_addr_in_buffer(x: u32, y: u32) -> (usize, u32) {
     let x_addr = x * (SIZE_Y / 8);
 
-    let y_addr = (SIZE_Y - y) / 8;
-    let y_bit = (SIZE_Y - y) % 8;
+    let y_addr = (SIZE_Y - 1 - y) / 8;
+    let y_bit = (SIZE_Y - 1 - y) % 8;
 
     let addr = x_addr as usize + y_addr as usize;
 
