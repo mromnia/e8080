@@ -18,7 +18,7 @@ impl Disassembler {
         while pointer < code.len() - 1 {
             match self.opcode_decoder.get_next_op(&code[pointer..]) {
                 Ok(op) => {
-                    let optype = op.optype.upgrade().unwrap();
+                    let optype = ::std::rc::Rc::clone(&op.optype);
                     ops.push(op);
                     pointer += optype.len;
                 }

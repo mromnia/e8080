@@ -31,8 +31,9 @@ impl ArcadeMachine {
         }
     }
 
-    pub fn run(&mut self, t: f64) {
-        let mut cycles = (CPU_HZ as f64) * t;
+    pub fn run(&mut self, t: f64) -> u32 {
+        let cycles_to_run = (CPU_HZ as f64) * t;
+        let mut cycles = cycles_to_run;
 
         while cycles > 0.0 {
             let cycles_spent = self.cpu.tick();
@@ -40,6 +41,8 @@ impl ArcadeMachine {
 
             self.update_ports();
         }
+
+        (cycles_to_run - cycles) as u32
     }
 
     fn update_ports(&mut self) {
@@ -77,6 +80,7 @@ impl ArcadeMachine {
     }
 
     pub fn get_render_buffer(&self) -> &[u8] {
+        println!("{:?}", self.shift_register);
         self.cpu.get_memory_to_end(0x2400)
     }
 

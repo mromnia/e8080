@@ -26,13 +26,10 @@ fn main() {
 }
 
 fn run_game() {
-    let opcode_data = load_opcodes();
-    let decoder = opcode_decoder::OpcodeDecoder::new(&opcode_data);
-
-    let rom_data = load_invaders();
-    let mut am = e8080::emulator::ArcadeMachine::new(decoder, &rom_data);
-
-    renderer::run(&mut am);
+    let decoder = e8080::decoder_new();
+    let am: *mut e8080::emulator::ArcadeMachine = e8080::am_new(decoder);
+    e8080::am_get_render_buffer(am);
+    renderer::run(am);
 }
 
 fn run_cpu_diag() {

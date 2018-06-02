@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::rc::Weak;
 use std::u8;
 
 pub struct OpcodeDecoder {
@@ -49,9 +48,11 @@ impl OpcodeDecoder {
     }
 
     pub fn get_next_op(&self, program: &[u8]) -> Result<Op, String> {
+        self.print_10_ops();
+
         if let Some(optype) = self.opcodes.get(&program[0]) {
             let mut op = Op {
-                optype: Rc::downgrade(&optype),
+                optype: Rc::clone(&optype),
                 arg1: None,
                 arg2: None,
             };
@@ -70,9 +71,22 @@ impl OpcodeDecoder {
             Err(format!("Invalid opcode: {:#04x?}", program[0]))
         }
     }
+
+    pub fn print_10_ops(&self) {
+        let mut counter = 0;
+        for (opcode, _) in &self.opcodes {
+            println!("{}", opcode);
+            counter += 1;
+
+            if counter >= 10 {
+                println!("{}", "--------------");
+                return;
+            }
+        }
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OpType {
     pub opcode: u8,
     pub instruction: String,
@@ -80,20 +94,16 @@ pub struct OpType {
     pub cycles: (u8, u8),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Op {
-    pub optype: Weak<OpType>,
+    pub optype: Rc<OpType>,
     pub arg1: Option<u8>,
     pub arg2: Option<u8>,
 }
 
 impl Op {
     pub fn instruction(&self) -> String {
-        if let Some(optype) = self.optype.upgrade() {
-            optype.instruction.to_string()
-        } else {
-            panic!("Attempt to get missing OpType")
-        }
+        self.optype.instruction.to_string()
     }
 
     pub fn arg1(&self) -> u8 {

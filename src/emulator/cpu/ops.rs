@@ -16,7 +16,7 @@ impl CPU {
     }
 
     pub fn execute_op(&mut self, op: &Op) -> u8 {
-        let optype = op.optype.upgrade().unwrap();
+        let optype = ::std::rc::Rc::clone(&op.optype);
         let opcode = optype.opcode;
 
         if self.debug {

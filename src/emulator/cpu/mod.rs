@@ -132,6 +132,7 @@ impl CPU {
     }
 
     pub fn get_memory_to_end(&self, addr: u16) -> &[u8] {
+        self.decoder.print_10_ops();
         self.memory.get_to_end(addr)
     }
 
